@@ -133,19 +133,69 @@ export async function POST(req: NextRequest) {
     }
 
     const { query, severity, sortBy } = parse.data;
-    const lowerQuery = query.toLowerCase();
 
-    let filtered = CVE_DATABASE.filter(item => {
-      const matchKeyword = item.cveId.toLowerCase().includes(lowerQuery) || 
-                           item.descriptions.toLowerCase().includes(lowerQuery);
-      const matchSeverity = severity ? item.metrics.cvssMetricV31.severity === severity : true;
-      return matchKeyword && matchSeverity;
+    // Call NIST NVD API v2.0
+    const nvdApiKey = process.env.NVD_API_KEY || "";
+    const nvdUrl = `https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch=${encodeURIComponent(query)}`;
+    
+    const apiHeaders: Record<string, string> = {
+      "User-Agent": "CyberReconDashboard/1.0"
+    };
+    if (nvdApiKey) {
+      apiHeaders["apiKey"] = nvdApiKey;
+    }
+
+    const apiRes = await fetch(nvdUrl, { 
+      headers: apiHeaders,
+      next: { revalidate: 3600 } // Cache results for 1 hour
+    });
+    
+    if (!apiRes.ok) {
+      throw new Error(`NVD API responded with status ${apiRes.status}`);
+    }
+    
+    const nvdData = await apiRes.json();
+    const vulnerabilities = nvdData.vulnerabilities || [];
+
+    // Map NVD schema to frontend structure
+    let filtered = vulnerabilities.map((item: any) => {
+      const cve = item.cve;
+      const description = cve.descriptions?.find((d: any) => d.lang === 'en')?.value || "No description available.";
+      
+      const metricV31 = cve.metrics?.cvssMetricV31?.[0];
+      const metricV30 = cve.metrics?.cvssMetricV30?.[0];
+      const metricV2 = cve.metrics?.cvssMetricV2?.[0];
+      
+      const score = metricV31?.cvssData?.baseScore || metricV30?.cvssData?.baseScore || metricV2?.cvssData?.baseScore || 0.0;
+      const vector = metricV31?.cvssData?.vectorString || metricV30?.cvssData?.vectorString || metricV2?.cvssData?.vectorString || "N/A";
+      const baseSeverity = metricV31?.cvssData?.baseSeverity || metricV30?.cvssData?.baseSeverity || metricV2?.cvssData?.baseSeverity || 
+                          (score >= 9.0 ? "CRITICAL" : score >= 7.0 ? "HIGH" : score >= 4.0 ? "MEDIUM" : "LOW");
+
+      return {
+        cveId: cve.id,
+        sourceIdentifier: cve.sourceIdentifier || "NVD",
+        published: cve.published,
+        lastModified: cve.lastModified,
+        vulnStatus: cve.vulnStatus || "Analyzed",
+        descriptions: description,
+        metrics: {
+          cvssMetricV31: {
+            score,
+            vectorString: vector,
+            severity: baseSeverity
+          }
+        }
+      };
     });
 
+    if (severity) {
+      filtered = filtered.filter((item: any) => item.metrics.cvssMetricV31.severity === severity);
+    }
+
     if (sortBy === 'SEVERITY') {
-      filtered.sort((a, b) => b.metrics.cvssMetricV31.score - a.metrics.cvssMetricV31.score);
+      filtered.sort((a: any, b: any) => b.metrics.cvssMetricV31.score - a.metrics.cvssMetricV31.score);
     } else {
-      filtered.sort((a, b) => new Date(b.published).getTime() - new Date(a.published).getTime());
+      filtered.sort((a: any, b: any) => new Date(b.published).getTime() - new Date(a.published).getTime());
     }
 
     await db.cveSearch.create({
