@@ -1,0 +1,174 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // Required for serverless pooling
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String          @unique
+  passwordHash  String
+  role          Role            @default(USER)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  sessions      Session[]
+  whoisSearches WhoisSearch[]
+  dnsSearches   DnsSearch[]
+  sslChecks     SslCheck[]
+  cveSearches   CveSearch[]
+  reports       UploadedReport[]
+  favorites     Favorite[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WhoisSearch {
+  id             String   @id @default(cuid())
+  userId         String
+  domain         String
+  registrar      String?
+  registeredAt   DateTime?
+  expiresAt      DateTime?
+  updatedAt      DateTime?
+  status         String[]
+  nameServers    String[]
+  createdAt      DateTime @default(now())
+  isFavorite     Boolean  @default(false)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model DnsSearch {
+  id         String   @id @default(cuid())
+  userId     String
+  domain     String
+  records    Json     // Array of typed DNS records
+  createdAt  DateTime @default(now())
+  isFavorite Boolean  @default(false)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model SslCheck {
+  id            String   @id @default(cuid())
+  userId         String
+  host          String
+  issuer        String
+  subject       String
+  validFrom     DateTime
+  validTo       DateTime
+  sigAlg        String
+  keySize       Int
+  chainStatus   String
+  createdAt     DateTime @default(now())
+  isFavorite    Boolean  @default(false)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model CveSearch {
+  id         String   @id @default(cuid())
+  userId     String
+  query      String
+  resultsCount Int
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model UploadedReport {
+  id         String   @id @default(cuid())
+  userId     String
+  fileName   String
+  fileType   String   // NMAP, NESSUS, OPENVAS
+  storageUrl String   // Remote object storage reference
+  summary    Json     // Parsed totals: vulnerabilities, ports, hosts
+  rawData    Json     // The processed structured JSON mapping
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model BlogPost {
+  id          String     @id @default(cuid())
+  title       String
+  slug        String     @unique
+  content     String     // MDX string content
+  readingTime String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  categories  Category[]
+  tags        Tag[]
+}
+
+model Category {
+  id    String     @id @default(cuid())
+  name  String     @unique
+  posts BlogPost[]
+}
+
+model Tag {
+  id    String     @id @default(cuid())
+  name  String     @unique
+  posts BlogPost[]
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  targetId  String
+  targetType String   // WHOIS, DNS, SSL, REPORT
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetId, targetType])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

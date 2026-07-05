@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: recon_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: recon_admin
+      POSTGRES_PASSWORD: recon_secure_password
+      POSTGRES_DB: recon_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: recon_web
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://recon_admin:recon_secure_password@postgres:5432/recon_db?schema=public
+      - NEXTAUTH_SECRET=4289ea9b39864adcb8827faefb8bf73d6118d3618bf5d706597793b8f6158e99
+      - NEXTAUTH_URL=http://localhost:3000
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:

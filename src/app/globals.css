@@ -1,0 +1,110 @@
+/* CSS compilation triggered */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 6%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 180 100% 50%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 180 100% 50%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 180 100% 50%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  body {
+    background-color: #080C14;
+    color: #E2E8F0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Cyber operations design elements */
+.glassmorphism {
+  background: rgba(13, 20, 35, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.cyber-panel {
+  position: relative;
+  background: rgba(10, 15, 26, 0.85);
+  border: 1px solid rgba(0, 229, 255, 0.1);
+  box-shadow: inset 0 0 15px rgba(0, 229, 255, 0.05);
+}
+
+.cyber-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid #00E5FF;
+  border-left: 2px solid #00E5FF;
+}
+
+.cyber-panel::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-bottom: 2px solid #00E5FF;
+  border-right: 2px solid #00E5FF;
+}
+
+.cyber-glow {
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.5), 0 0 20px rgba(0, 229, 255, 0.2);
+}
+
+.cyber-glow-border {
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
+}
+
+.scanline {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  ), linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.06),
+    rgba(0, 255, 0, 0.02),
+    rgba(0, 0, 255, 0.06)
+  );
+  background-size: 100% 4px, 6px 100%;
+}
+
+.pulse-glow {
+  animation: pulse-glow-animation 3s infinite ease-in-out;
+}
+
+@keyframes pulse-glow-animation {
+  0%, 100% {
+    opacity: 0.3;
+    box-shadow: 0 0 5px rgba(0, 229, 255, 0.1);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+  }
+}
